@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <style>
+    body { background: #f4f6f9; font-family: "Segoe UI", sans-serif; }
+    .profile-card {
+      max-width: 600px;
+      margin: 40px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .profile-pic {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 15px;
+      border: 4px solid #6a0dad;
+    }
+    .badge-admin {
+      background: #6a0dad;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="profile-card">
+      <img src="https://via.placeholder.com/120" alt="Avatar" class="profile-pic" id="profilePic">
+      <h3 id="usernameDisplay">Tên người dùng</h3>
+      <p class="text-muted" id="emailDisplay">email@example.com</p>
+      <span id="roleBadge"></span>
+      <hr>
+      
+      <!-- Form cập nhật -->
+      <form id="updateForm" class="mt-3">
+        <div class="mb-3 text-start">
+          <label class="form-label">Tên hiển thị</label>
+          <input type="text" id="usernameInput" class="form-control">
+        </div>
+        <div class="mb-3 text-start">
+          <label class="form-label">URL Ảnh đại diện</label>
+          <input type="text" id="avatarInput" class="form-control" placeholder="https://...">
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Cập nhật</button>
+      </form>
+
+      <hr>
+      <button id="btnLogout" class="btn btn-danger w-100 mt-2">
+        <i class="bi bi-box-arrow-right"></i> Đăng xuất
+      </button>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCEnhEqr8292x_0ejH1P9dcUPX9JN6LziI",
+      authDomain: "du-an-cuoi-khoa-f1508.firebaseapp.com",
+      projectId: "du-an-cuoi-khoa-f1508",
+      storageBucket: "du-an-cuoi-khoa-f1508.firebasestorage.app",
+      messagingSenderId: "410109787136",
+      appId: "1:410109787136:web:a99595c3c9461628612ce5",
+      measurementId: "G-JZVDC1STJL"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const usernameDisplay = document.getElementById("usernameDisplay");
+    const emailDisplay = document.getElementById("emailDisplay");
+    const roleBadge = document.getElementById("roleBadge");
+    const profilePic = document.getElementById("profilePic");
+
+    const usernameInput = document.getElementById("usernameInput");
+    const avatarInput = document.getElementById("avatarInput");
+    const updateForm = document.getElementById("updateForm");
+    const btnLogout = document.getElementById("btnLogout");
+
+    let currentUserId = null;
+
+    // Load profile
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
+      currentUserId = user.uid;
+      emailDisplay.textContent = user.email;
+
+      const docSnap = await db.collection("users").doc(user.uid).get();
+      if (docSnap.exists) {
+        const data = docSnap.data();
+        usernameDisplay.textContent = data.username || "Chưa có tên";
+        profilePic.src = data.avatar || "https://via.placeholder.com/120";
+        if (data.role === "admin") {
+          roleBadge.innerHTML = `<span class="badge badge-admin">Admin</span>`;
+        } else {
+          roleBadge.innerHTML = `<span class="badge bg-secondary">User</span>`;
+        }
+        usernameInput.value = data.username || "";
+        avatarInput.value = data.avatar || "";
+      }
+    });
+
+    // Cập nhật thông tin
+    updateForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const newUsername = usernameInput.value;
+      const newAvatar = avatarInput.value;
+
+      await db.collection("users").doc(currentUserId).update({
+        username: newUsername,
+        avatar: newAvatar
+      });
+
+      alert("Cập nhật thành công!");
+      usernameDisplay.textContent = newUsername;
+      profilePic.src = newAvatar || "https://via.placeholder.com/120";
+    });
+
+    // Đăng xuất
+    btnLogout.addEventListener("click", () => {
+      auth.signOut().then(() => {
+        window.location.href = "login.html";
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý Câu hỏi - Quiz</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background: #f4f6f9; }
+    .card { border-radius: 15px; }
+  </style>
+</head>
+<body>
+  <div class="container py-4">
+    <h2 class="mb-4">📑 Quản lý Câu hỏi</h2>
+    <div id="quizInfo" class="mb-4"></div>
+
+    <!-- Danh sách câu hỏi -->
+    <div class="card shadow p-3 mb-4">
+      <h5>Danh sách Câu hỏi</h5>
+      <ul class="list-group" id="questionList"></ul>
+    </div>
+
+    <!-- Form thêm câu hỏi -->
+    <div class="card shadow p-3">
+      <h5>Thêm Câu hỏi mới</h5>
+      <form id="questionForm">
+        <div class="mb-3">
+          <label class="form-label">Nội dung câu hỏi</label>
+          <input type="text" id="questionText" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Các lựa chọn (ngăn cách bởi dấu ;)</label>
+          <input type="text" id="questionOptions" class="form-control" placeholder="Ví dụ: 2;3;4;5" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Đáp án đúng (chỉ số, bắt đầu từ 0)</label>
+          <input type="number" id="questionAnswer" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Thêm Câu hỏi</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCEnhEqr8292x_0ejH1P9dcUPX9JN6LziI",
+      authDomain: "du-an-cuoi-khoa-f1508.firebaseapp.com",
+      projectId: "du-an-cuoi-khoa-f1508",
+      storageBucket: "du-an-cuoi-khoa-f1508.firebasestorage.app",
+      messagingSenderId: "410109787136",
+      appId: "1:410109787136:web:a99595c3c9461628612ce5",
+      measurementId: "G-JZVDC1STJL"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const quizId = urlParams.get("quizId");
+
+    const quizInfo = document.getElementById("quizInfo");
+    const questionList = document.getElementById("questionList");
+    const questionForm = document.getElementById("questionForm");
+
+    // Hiển thị thông tin quiz
+    async function loadQuizInfo() {
+      const doc = await db.collection("quizzes").doc(quizId).get();
+      if (!doc.exists) {
+        quizInfo.innerHTML = `<p class="text-danger">Quiz không tồn tại.</p>`;
+        return;
+      }
+      const q = doc.data();
+      quizInfo.innerHTML = `
+        <div class="alert alert-info">
+          <h5>${q.title}</h5>
+          <p>${q.description || ""}</p>
+          <span class="badge bg-secondary">${q.category || ""}</span>
+        </div>
+      `;
+    }
+
+    // Hiển thị danh sách câu hỏi
+    async function loadQuestions() {
+      questionList.innerHTML = "";
+      const snapshot = await db.collection("quizzes").doc(quizId).collection("questions").get();
+      if (snapshot.empty) {
+        questionList.innerHTML = `<li class="list-group-item text-muted">Chưa có câu hỏi nào.</li>`;
+        return;
+      }
+      let i = 1;
+      snapshot.forEach(doc => {
+        const q = doc.data();
+        questionList.innerHTML += `
+          <li class="list-group-item">
+            <strong>Câu ${i++}:</strong> ${q.text}<br>
+            <em>Lựa chọn:</em> ${q.options.join(" | ")}<br>
+            <em>Đáp án đúng:</em> ${q.options[q.answer] || "(chưa rõ)"}<br>
+            <button class="btn btn-sm btn-danger mt-2" onclick="deleteQuestion('${doc.id}')">Xóa</button>
+          </li>
+        `;
+      });
+    }
+
+    // Thêm câu hỏi
+    questionForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = document.getElementById("questionText").value;
+      const options = document.getElementById("questionOptions").value.split(";");
+      const answer = parseInt(document.getElementById("questionAnswer").value);
+
+      await db.collection("quizzes").doc(quizId).collection("questions").add({
+        text, options, answer
+      });
+
+      questionForm.reset();
+      loadQuestions();
+    });
+
+    // Xóa câu hỏi
+    async function deleteQuestion(id) {
+      if (confirm("Bạn có chắc muốn xóa câu hỏi này?")) {
+        await db.collection("quizzes").doc(quizId).collection("questions").doc(id).delete();
+        loadQuestions();
+      }
+    }
+
+    // Gọi khi load trang
+    loadQuizInfo();
+    loadQuestions();
+  </script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý User - Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+    }
+    .sidebar {
+      width: 250px;
+      background: #6a0dad; /* tím admin */
+      color: white;
+      padding: 20px;
+    }
+    .sidebar a {
+      color: white;
+      text-decoration: none;
+      display: block;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 5px;
+    }
+    .sidebar a:hover, .sidebar a.active {
+      background: rgba(255,255,255,0.2);
+    }
+    .content {
+      flex: 1;
+      padding: 20px;
+      background: #f4f6f9;
+    }
+    .card { border-radius: 15px; }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <h3 class="mb-4">Admin Panel</h3>
+    <a href="admin.html">Dashboard</a>
+    <a href="user.html" class="active">Quản lý Users</a>
+    <a href="quiz.html">Quản lý Quiz</a>
+    <a href="#">Thống kê</a>
+    <a href="#">Cài đặt</a>
+    <a href="login.html" class="text-danger">Đăng xuất</a>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="content">
+    <h2 class="mb-4">Quản lý User</h2>
+
+    <!-- Bảng hiển thị user -->
+    <div class="card shadow p-3">
+      <h5>Danh sách User</h5>
+      <table class="table table-striped align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>#</th>
+            <th>UID</th>
+            <th>Tên đăng nhập</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+        <tbody id="userTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal chỉnh sửa -->
+  <div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="editUserForm">
+          <div class="modal-header">
+            <h5 class="modal-title">Chỉnh sửa User</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="editUserId">
+            <div class="mb-3">
+              <label class="form-label">Tên đăng nhập</label>
+              <input type="text" id="editUsername" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+              <input type="email" id="editEmail" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Role</label>
+              <select id="editRole" class="form-select">
+                <option value="User">User</option>
+                <option value="Admin">Admin</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-success">Lưu</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCEnhEqr8292x_0ejH1P9dcUPX9JN6LziI",
+      authDomain: "du-an-cuoi-khoa-f1508.firebaseapp.com",
+      projectId: "du-an-cuoi-khoa-f1508",
+      storageBucket: "du-an-cuoi-khoa-f1508.firebasestorage.app",
+      messagingSenderId: "410109787136",
+      appId: "1:410109787136:web:a99595c3c9461628612ce5",
+      measurementId: "G-JZVDC1STJL"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const userTable = document.getElementById("userTable");
+
+    // Load users
+    async function renderUsers() {
+      userTable.innerHTML = "";
+      const snapshot = await db.collection("users").get();
+      let i = 1;
+      snapshot.forEach(doc => {
+        const u = doc.data();
+        userTable.innerHTML += `
+          <tr>
+            <td>${i++}</td>
+            <td>${doc.id}</td>
+            <td>${u.username}</td>
+            <td>${u.email}</td>
+            <td>${u.role}</td>
+            <td>
+              <button class="btn btn-warning btn-sm" onclick="openEditModal('${doc.id}', '${u.username}', '${u.email}', '${u.role}')">Sửa</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteUser('${doc.id}')">Xóa</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // Xóa user
+    async function deleteUser(id) {
+      if(confirm("Bạn có chắc muốn xóa user này?")) {
+        await db.collection("users").doc(id).delete();
+        renderUsers();
+      }
+    }
+
+    // Mở modal sửa
+    function openEditModal(id, username, email, role) {
+      document.getElementById("editUserId").value = id;
+      document.getElementById("editUsername").value = username;
+      document.getElementById("editEmail").value = email;
+      document.getElementById("editRole").value = role;
+      new bootstrap.Modal(document.getElementById('editModal')).show();
+    }
+
+    // Lưu sửa user
+    document.getElementById("editUserForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const id = document.getElementById("editUserId").value;
+      const username = document.getElementById("editUsername").value;
+      const email = document.getElementById("editEmail").value;
+      const role = document.getElementById("editRole").value;
+
+      await db.collection("users").doc(id).update({ username, email, role });
+      bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+      renderUsers();
+    });
+
+    // Render lần đầu
+    renderUsers();
+  </script>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

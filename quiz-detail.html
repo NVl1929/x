@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Làm Quiz</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <style>
+    body { background: #f4f6f9; font-family: "Segoe UI", sans-serif; }
+    .quiz-header {
+      background: linear-gradient(90deg, #6a0dad, #9b4dca);
+      color: white;
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 30px;
+      text-align: center;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .question-card {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      text-align: left;
+      animation: fadeIn 0.4s ease-in-out;
+    }
+    .btn-nav {
+      min-width: 120px;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container py-5">
+    <!-- Quiz Info -->
+    <div id="quizInfo" class="quiz-header"></div>
+
+    <!-- Question Area -->
+    <div id="questionArea" class="mb-4"></div>
+
+    <!-- Navigation Buttons -->
+    <div class="d-flex justify-content-between">
+      <button id="prevBtn" class="btn btn-outline-secondary btn-nav" disabled><i class="bi bi-arrow-left"></i> Câu trước</button>
+      <button id="nextBtn" class="btn btn-primary btn-nav">Câu tiếp <i class="bi bi-arrow-right"></i></button>
+    </div>
+
+    <!-- Result -->
+    <div id="quizResult" class="alert alert-info mt-4 d-none"></div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCEnhEqr8292x_0ejH1P9dcUPX9JN6LziI",
+      authDomain: "du-an-cuoi-khoa-f1508.firebaseapp.com",
+      projectId: "du-an-cuoi-khoa-f1508",
+      storageBucket: "du-an-cuoi-khoa-f1508.firebasestorage.app",
+      messagingSenderId: "410109787136",
+      appId: "1:410109787136:web:a99595c3c9461628612ce5",
+      measurementId: "G-JZVDC1STJL"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const quizId = urlParams.get("id");
+
+    const quizInfo = document.getElementById("quizInfo");
+    const questionArea = document.getElementById("questionArea");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const quizResult = document.getElementById("quizResult");
+
+    let questions = [];
+    let currentIndex = 0;
+    let answers = {}; // lưu đáp án người dùng
+
+    // Load quiz + câu hỏi
+    async function loadQuiz() {
+      const quizDoc = await db.collection("quizzes").doc(quizId).get();
+      if (!quizDoc.exists) {
+        quizInfo.innerHTML = "<h3>Quiz không tồn tại</h3>";
+        return;
+      }
+      const quiz = quizDoc.data();
+      quizInfo.innerHTML = `
+        <h2>${quiz.title}</h2>
+        <p class="mb-0">${quiz.description || ""}</p>
+        <span class="badge bg-light text-dark mt-2">${quiz.category || ""}</span>
+      `;
+
+      const qSnap = await db.collection("quizzes").doc(quizId).collection("questions").get();
+      questions = [];
+      qSnap.forEach(doc => {
+        questions.push({ id: doc.id, ...doc.data() });
+      });
+
+      if (questions.length === 0) {
+        questionArea.innerHTML = `<div class="alert alert-warning">Quiz này chưa có câu hỏi.</div>`;
+        nextBtn.disabled = true;
+        return;
+      }
+
+      renderQuestion();
+    }
+
+    // Hiển thị câu hỏi hiện tại
+    function renderQuestion() {
+      const q = questions[currentIndex];
+      questionArea.innerHTML = `
+        <div class="question-card">
+          <h5>Câu ${currentIndex + 1}/${questions.length}</h5>
+          <p class="fw-bold">${q.text}</p>
+          ${q.options.map((opt, idx) => `
+            <div class="form-check">
+              <input class="form-check-input" type="radio" 
+                     name="q_${q.id}" value="${idx}"
+                     ${answers[q.id] == idx ? "checked" : ""}>
+              <label class="form-check-label">${opt}</label>
+            </div>
+          `).join("")}
+        </div>
+      `;
+
+      prevBtn.disabled = (currentIndex === 0);
+      nextBtn.innerHTML = (currentIndex === questions.length - 1)
+        ? "Nộp bài <i class='bi bi-check2-circle'></i>"
+        : "Câu tiếp <i class='bi bi-arrow-right'></i>";
+    }
+
+    // Lưu đáp án khi chọn
+    questionArea.addEventListener("change", (e) => {
+      if (e.target.type === "radio") {
+        answers[questions[currentIndex].id] = parseInt(e.target.value);
+      }
+    });
+
+    // Nút Câu trước
+    prevBtn.addEventListener("click", () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        renderQuestion();
+      }
+    });
+
+    // Nút Câu tiếp / Nộp bài
+    nextBtn.addEventListener("click", () => {
+      if (currentIndex < questions.length - 1) {
+        currentIndex++;
+        renderQuestion();
+      } else {
+        submitQuiz();
+      }
+    });
+
+    // Chấm điểm
+    function submitQuiz() {
+      let score = 0;
+      questions.forEach(q => {
+        if (answers[q.id] === q.answer) score++;
+      });
+
+      questionArea.innerHTML = "";
+      prevBtn.style.display = "none";
+      nextBtn.style.display = "none";
+      quizResult.classList.remove("d-none");
+      quizResult.classList.remove("alert-info");
+      quizResult.classList.add(score >= questions.length/2 ? "alert-success" : "alert-danger");
+      quizResult.innerHTML = `
+        <h4>Kết quả</h4>
+        <p>Bạn trả lời đúng <strong>${score}/${questions.length}</strong> câu.</p>
+      `;
+    }
+
+    loadQuiz();
+  </script>
+</body>
+</html>

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My Notes — Quiz+Note</title>
+
+  <!-- Bootstrap CSS + icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+  <style>
+    :root {
+      --main-purple: #6a0dad;
+      --light-bg: #f4f6f9;
+    }
+    body { background: var(--light-bg); font-family: "Segoe UI", Tahoma, sans-serif; }
+
+    /* Navbar */
+    .navbar { background: linear-gradient(90deg, #6a0dad, #9b4dca); }
+    .navbar-brand, .nav-link, .dropdown-toggle { color: white !important; }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid white;
+      margin-right: 8px;
+    }
+
+    /* Notes layout */
+    .page-head { padding: 40px 0 20px; text-align:center; }
+    .page-head h2 { font-weight:700; color:#222; display:inline-flex; align-items:center; gap:.6rem; }
+
+    .notes-grid { margin-top: 20px; display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:20px; }
+
+    .note-card {
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+      background: #fff;
+      min-height: 120px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      transition: transform .14s ease, box-shadow .14s ease;
+    }
+    .note-card:hover { transform: translateY(-6px); box-shadow: 0 12px 26px rgba(0,0,0,0.12); }
+
+    .note-title { font-weight:700; color: #111; margin-bottom: .4rem; }
+    .note-text { color: #444; white-space: pre-wrap; word-break: break-word; flex:1; }
+
+    /* floating add button */
+    .add-btn {
+      position: fixed;
+      right: 28px;
+      bottom: 28px;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      z-index: 2000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+      border: none;
+    }
+
+    #emptyPlaceholder {
+      margin-top: 80px;
+      color: #6c6f73;
+      font-size: 1.1rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold text-white" href="trangchu.html">
+        <i class="bi bi-lightning-charge-fill"></i> Quiz+Note
+      </a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto align-items-center">
+          <!-- Chưa login -->
+          <li class="nav-item" id="nav-login">
+            <a class="btn btn-outline-light me-2" href="login.html">Đăng nhập</a>
+          </li>
+          <li class="nav-item" id="nav-signup">
+            <a class="btn btn-warning" href="signup.html">Đăng ký</a>
+          </li>
+
+          <!-- Đã login -->
+          <li class="nav-item dropdown d-none" id="nav-user">
+            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+              <img id="userAvatar" class="user-avatar"
+                   src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="avatar">
+              <span id="usernameDisplay">User</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow">
+              <li><a class="dropdown-item" href="profile.html"><i class="bi bi-person-lines-fill me-2"></i> Profile</a></li>
+              <li><a class="dropdown-item" href="quiz-list.html"><i class="bi bi-card-checklist me-2"></i> Danh sách Quiz</a></li>
+              <li><a class="dropdown-item" href="note.html"><i class="bi bi-journal-text me-2"></i> Ghi chú</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" href="#" id="btnLogout"><i class="bi bi-box-arrow-right me-2"></i> Đăng xuất</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Header -->
+  <div class="container page-head">
+    <h2><i class="bi bi-journal-text" style="color:var(--main-purple); font-size:1.4rem"></i> My Notes</h2>
+    <div id="emptyPlaceholder" class="d-none">Bạn chưa có ghi chú nào — nhấn nút <strong>+</strong> để thêm.</div>
+  </div>
+
+  <!-- Notes -->
+  <div class="container">
+    <div id="notesContainer" class="notes-grid"></div>
+  </div>
+
+  <!-- Floating Add Button -->
+  <button id="openAddBtn" class="btn btn-primary add-btn" data-bs-toggle="modal" data-bs-target="#noteModal" title="Thêm ghi chú">
+    <i class="bi bi-plus-lg" style="font-size:1.2rem"></i>
+  </button>
+
+  <!-- Modal -->
+  <div class="modal fade" id="noteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Thêm Ghi chú</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input id="noteTitle" class="form-control mb-2" placeholder="Tiêu đề">
+          <textarea id="noteContent" class="form-control" placeholder="Viết gì đó..."></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button id="saveNoteBtn" class="btn btn-success">Lưu</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCEnhEqr8292x_0ejH1P9dcUPX9JN6LziI",
+      authDomain: "du-an-cuoi-khoa-f1508.firebaseapp.com",
+      projectId: "du-an-cuoi-khoa-f1508",
+      storageBucket: "du-an-cuoi-khoa-f1508.firebasestorage.app",
+      messagingSenderId: "410109787136",
+      appId: "1:410109787136:web:a99595c3c9461628612ce5",
+      measurementId: "G-JZVDC1STJL"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const navLogin = document.getElementById("nav-login");
+    const navSignup = document.getElementById("nav-signup");
+    const navUser = document.getElementById("nav-user");
+    const usernameDisplay = document.getElementById("usernameDisplay");
+    const userAvatar = document.getElementById("userAvatar");
+    const btnLogout = document.getElementById("btnLogout");
+
+    // Lắng nghe trạng thái đăng nhập
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        navLogin.classList.add("d-none");
+        navSignup.classList.add("d-none");
+        navUser.classList.remove("d-none");
+
+        try {
+          const docSnap = await db.collection("users").doc(user.uid).get();
+          if (docSnap.exists) {
+            const data = docSnap.data();
+            usernameDisplay.innerText = data.username || user.email;
+            userAvatar.src = data.avatar || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+          } else {
+            usernameDisplay.innerText = user.email;
+            userAvatar.src = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+          }
+        } catch (e) {
+          console.error("Lỗi lấy user:", e);
+          usernameDisplay.innerText = user.email;
+          userAvatar.src = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+        }
+      } else {
+        navLogin.classList.remove("d-none");
+        navSignup.classList.remove("d-none");
+        navUser.classList.add("d-none");
+      }
+    });
+
+    // Đăng xuất
+    btnLogout?.addEventListener("click", () => {
+      auth.signOut().then(() => {
+        window.location.href = "login.html";
+      });
+    });
+
+    // Notes logic
+    document.addEventListener('DOMContentLoaded', () => {
+      const notesContainer = document.getElementById('notesContainer');
+      const emptyPlaceholder = document.getElementById('emptyPlaceholder');
+      const saveNoteBtn = document.getElementById('saveNoteBtn');
+      const noteTitle = document.getElementById('noteTitle');
+      const noteContent = document.getElementById('noteContent');
+      const noteModal = new bootstrap.Modal(document.getElementById('noteModal'));
+
+      const KEY = 'quiznote_notes_v1';
+      let notes = JSON.parse(localStorage.getItem(KEY)) || [];
+
+      function save() { localStorage.setItem(KEY, JSON.stringify(notes)); }
+      function render() {
+        notesContainer.innerHTML = "";
+        if (notes.length === 0) {
+          emptyPlaceholder.classList.remove('d-none');
+          return;
+        }
+        emptyPlaceholder.classList.add('d-none');
+        notes.forEach((n, i) => {
+          const div = document.createElement('div');
+          div.className = 'note-card';
+          div.innerHTML = `
+            <div>
+              <div class="note-title">${n.title || "Không có tiêu đề"}</div>
+              <div class="note-text">${n.content || ""}</div>
+            </div>
+            <div class="mt-3 d-flex gap-2 justify-content-end">
+              <button class="btn btn-sm btn-outline-secondary" onclick="edit(${i})"><i class="bi bi-pencil"></i></button>
+              <button class="btn btn-sm btn-danger" onclick="del(${i})"><i class="bi bi-trash"></i></button>
+            </div>
+          `;
+          notesContainer.appendChild(div);
+        });
+      }
+
+      window.del = (i) => {
+        if (confirm("Xóa ghi chú này?")) {
+          notes.splice(i, 1); save(); render();
+        }
+      };
+      window.edit = (i) => {
+        noteTitle.value = notes[i].title;
+        noteContent.value = notes[i].content;
+        notes.splice(i, 1); save(); render();
+        noteModal.show();
+      };
+
+      saveNoteBtn.addEventListener('click', () => {
+        if (!noteTitle.value && !noteContent.value) return;
+        notes.unshift({ title: noteTitle.value, content: noteContent.value });
+        save(); render();
+        noteTitle.value = ""; noteContent.value = "";
+        noteModal.hide();
+      });
+
+      render();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đăng ký</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body {
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      background: url('https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1350&q=80') no-repeat center center;
+      background-size: cover;
+      background-attachment: fixed;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .navbar {
+      background: linear-gradient(90deg, #6a0dad, #9b4dca);
+    }
+
+    .navbar-brand,
+    .nav-link,
+    .dropdown-toggle {
+      color: white !important;
+    }
+
+    .card {
+      border-radius: 15px;
+    }
+
+    .register-form {
+      background-color: rgba(0, 0, 0, 0.75);
+      padding: 40px;
+      border-radius: 10px;
+      color: white;
+      width: 100%;
+      max-width: 450px;
+    }
+
+    .form-control {
+      background-color: #333;
+      border: none;
+      color: white;
+    }
+
+    .form-control::placeholder {
+      color: #aaa;
+    }
+
+    .error-message {
+      color: #ff6b6b;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-expand-lg shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold text-white" href="trangchu.html">
+        <i class="bi bi-lightning-charge-fill"></i> Quiz+Note
+      </a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto align-items-center">
+          <!-- Khi chưa login -->
+          <li class="nav-item" id="nav-login">
+            <a class="btn btn-outline-light me-2" href="login.html">Đăng nhập</a>
+          </li>
+          <li class="nav-item" id="nav-signup">
+            <a class="btn btn-warning" href="signup.html">Đăng ký</a>
+          </li>
+
+          <!-- Khi đã login -->
+          <li class="nav-item dropdown d-none" id="nav-user">
+            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button"
+              data-bs-toggle="dropdown">
+              <i class="bi bi-person-circle me-1"></i>
+              <span id="usernameDisplay">User</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow">
+              <li><a class="dropdown-item" href="profile.html"><i class="bi bi-person-lines-fill me-2"></i> Profile</a>
+              </li>
+              <li><a class="dropdown-item" href="quiz-list.html"><i class="bi bi-card-checklist me-2"></i> Danh sách
+                  Quiz</a></li>
+              <li><a class="dropdown-item" href="note.html"><i class="bi bi-journal-text me-2"></i> Ghi chú</a></li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li><a class="dropdown-item text-danger" href="#" id="btnLogout"><i
+                    class="bi bi-box-arrow-right me-2"></i> Đăng xuất</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main>
+    <div class="register-form">
+      <h2 class="mb-4">Sign Up</h2>
+      <form id="signupForm" novalidate>
+        <div class="mb-3">
+          <input type="text" id="username" class="form-control" placeholder="Username">
+          <div id="usernameError" class="error-message"></div>
+        </div>
+        <div class="mb-3">
+          <input type="email" id="email" class="form-control" placeholder="Email">
+          <div id="emailError" class="error-message"></div>
+        </div>
+        <div class="mb-3">
+          <input type="password" id="password" class="form-control" placeholder="Password">
+          <div id="passwordError" class="error-message"></div>
+        </div>
+        <div class="mb-3">
+          <input type="password" id="confirmPassword" class="form-control" placeholder="Confirm Password">
+          <div id="confirmPasswordError" class="error-message"></div>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Register</button>
+      </form>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-dark text-light py-4">
+    <div class="container text-center">
+      <p>&copy; 2025 QuiZZ Việt. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCEnhEqr8292x_0ejH1P9dcUPX9JN6LziI",
+      authDomain: "du-an-cuoi-khoa-f1508.firebaseapp.com",
+      projectId: "du-an-cuoi-khoa-f1508",
+      storageBucket: "du-an-cuoi-khoa-f1508.firebasestorage.app",
+      messagingSenderId: "410109787136",
+      appId: "1:410109787136:web:a99595c3c9461628612ce5",
+      measurementId: "G-JZVDC1STJL"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    document.getElementById("signupForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const username = document.getElementById("username").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+
+      // reset lỗi
+      document.getElementById("usernameError").innerText = "";
+      document.getElementById("emailError").innerText = "";
+      document.getElementById("passwordError").innerText = "";
+      document.getElementById("confirmPasswordError").innerText = "";
+
+      if (!username) {
+        document.getElementById("usernameError").innerText = "Vui lòng nhập username";
+        return;
+      }
+      if (password !== confirmPassword) {
+        document.getElementById("confirmPasswordError").innerText = "Mật khẩu không khớp";
+        return;
+      }
+
+      try {
+        // Tạo user trong Firebase Authentication
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+
+        // Lưu thông tin vào Firestore
+        await db.collection("users").doc(user.uid).set({
+          username,
+          email,
+          role: "User",
+          createdAt: new Date()
+        });
+
+        alert("Đăng ký thành công!");
+        window.location.href = "login.html";
+      } catch (error) {
+        alert("Lỗi: " + error.message);
+      }
+    });
+  </script>
+</body>
+
+</html>

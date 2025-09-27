@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý Quiz - Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+    }
+    .sidebar {
+      width: 250px;
+      background: #6a0dad;
+      color: white;
+      padding: 20px;
+    }
+    .sidebar a {
+      color: white;
+      text-decoration: none;
+      display: block;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 5px;
+    }
+    .sidebar a:hover, .sidebar a.active {
+      background: rgba(255,255,255,0.2);
+    }
+    .content {
+      flex: 1;
+      padding: 20px;
+      background: #f4f6f9;
+    }
+    .card { border-radius: 15px; }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <h3 class="mb-4">Admin Panel</h3>
+    <a href="admin.html">Dashboard</a>
+    <a href="user.html">Quản lý Users</a>
+    <a href="quiz.html" class="active">Quản lý Quiz</a>
+    <a href="#">Thống kê</a>
+    <a href="#">Cài đặt</a>
+    <a href="login.html" class="text-danger">Đăng xuất</a>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="content">
+    <h2 class="mb-4">Quản lý Quiz</h2>
+
+    <!-- Bảng hiển thị quiz -->
+    <div class="card shadow p-3 mb-4">
+      <h5>Danh sách Quiz</h5>
+      <table class="table table-striped align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>#</th>
+            <th>Tiêu đề</th>
+            <th>Mô tả</th>
+            <th>Chủ đề</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+        <tbody id="quizTable"></tbody>
+      </table>
+    </div>
+
+    <!-- Form thêm quiz -->
+    <div class="card shadow p-3">
+      <h5>Thêm Quiz mới</h5>
+      <form id="quizForm">
+        <div class="mb-3">
+          <label class="form-label">Tiêu đề</label>
+          <input type="text" id="quizTitle" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Mô tả</label>
+          <input type="text" id="quizDesc" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Chủ đề</label>
+          <input type="text" id="quizCategory" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-primary">Thêm Quiz</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal chỉnh sửa Quiz -->
+  <div class="modal fade" id="editQuizModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="editQuizForm">
+          <div class="modal-header">
+            <h5 class="modal-title">Chỉnh sửa Quiz</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="editQuizId">
+            <div class="mb-3">
+              <label class="form-label">Tiêu đề</label>
+              <input type="text" id="editQuizTitle" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Mô tả</label>
+              <input type="text" id="editQuizDesc" class="form-control">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Chủ đề</label>
+              <input type="text" id="editQuizCategory" class="form-control">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-success">Lưu</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCEnhEqr8292x_0ejH1P9dcUPX9JN6LziI",
+      authDomain: "du-an-cuoi-khoa-f1508.firebaseapp.com",
+      projectId: "du-an-cuoi-khoa-f1508",
+      storageBucket: "du-an-cuoi-khoa-f1508.firebasestorage.app",
+      messagingSenderId: "410109787136",
+      appId: "1:410109787136:web:a99595c3c9461628612ce5",
+      measurementId: "G-JZVDC1STJL"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const quizTable = document.getElementById("quizTable");
+    const quizForm = document.getElementById("quizForm");
+
+    // Hiển thị quiz
+    async function renderQuiz() {
+      quizTable.innerHTML = "";
+      const snapshot = await db.collection("quizzes").get();
+      let i = 1;
+      snapshot.forEach(doc => {
+        const q = doc.data();
+        quizTable.innerHTML += `
+          <tr>
+            <td>${i++}</td>
+            <td>${q.title}</td>
+            <td>${q.description || ""}</td>
+            <td>${q.category || ""}</td>
+            <td>
+  <a href="quiz-questions.html?quizId=${doc.id}" class="btn btn-info btn-sm">Câu hỏi</a>
+  <button class="btn btn-warning btn-sm" onclick="openEditModal('${doc.id}', '${q.title}', '${q.description || ""}', '${q.category || ""}')">Sửa</button>
+  <button class="btn btn-danger btn-sm" onclick="deleteQuiz('${doc.id}')">Xóa</button>
+</td>
+
+          </tr>
+        `;
+      });
+    }
+
+    // Thêm quiz mới
+    quizForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = document.getElementById("quizTitle").value;
+      const description = document.getElementById("quizDesc").value;
+      const category = document.getElementById("quizCategory").value;
+
+      await db.collection("quizzes").add({ title, description, category, createdAt: new Date() });
+      quizForm.reset();
+      renderQuiz();
+    });
+
+    // Xóa quiz
+    async function deleteQuiz(id) {
+      if(confirm("Bạn có chắc muốn xóa quiz này?")) {
+        await db.collection("quizzes").doc(id).delete();
+        renderQuiz();
+      }
+    }
+
+    // Mở modal sửa
+    function openEditModal(id, title, desc, category) {
+      document.getElementById("editQuizId").value = id;
+      document.getElementById("editQuizTitle").value = title;
+      document.getElementById("editQuizDesc").value = desc;
+      document.getElementById("editQuizCategory").value = category;
+      new bootstrap.Modal(document.getElementById('editQuizModal')).show();
+    }
+
+    // Lưu quiz đã sửa
+    document.getElementById("editQuizForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const id = document.getElementById("editQuizId").value;
+      const title = document.getElementById("editQuizTitle").value;
+      const description = document.getElementById("editQuizDesc").value;
+      const category = document.getElementById("editQuizCategory").value;
+
+      await db.collection("quizzes").doc(id).update({ title, description, category });
+      bootstrap.Modal.getInstance(document.getElementById('editQuizModal')).hide();
+      renderQuiz();
+    });
+
+    // Render lần đầu
+    renderQuiz();
+  </script>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
